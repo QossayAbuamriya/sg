@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "129037791831",
+    "project_id": "summary-genius",
+    "storage_bucket": "summary-genius.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:129037791831:android:d4f4e6ec5cb7da324a2912",
+        "android_client_info": {
+          "package_name": "com.example.sg"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPZfNZ0NQx53Zzc4JE3z8Or--RWUp6fKU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
