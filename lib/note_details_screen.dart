@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:fluttertoast/fluttertoast.dart';
+
 
 class NoteDetailsScreen extends StatefulWidget {
   late String noteTitle;
@@ -138,6 +142,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
                     border: Border.all(color: Colors.lightBlueAccent),
                     borderRadius: BorderRadius.circular(8.0),
                   ),
+                  //the main text box 
                   child: SingleChildScrollView(
                     child: TextField(
                       controller: _textEditingController,
@@ -194,37 +199,152 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
   }
 
   void _showTextBoxPopup(BuildContext context) {
-    TextEditingController textBoxController = TextEditingController();
+  TextEditingController textBoxController = TextEditingController();
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Enter Text'),
-          content: TextField(
-            controller: textBoxController,
-            autofocus: true,
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Enter Text'),
+        content: TextField(
+          controller: textBoxController,
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close the dialog
+            },
+            child: Text('Cancel'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close the dialog
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                String text = textBoxController.text;
-                // Do something with the entered text
-                Navigator.pop(context); // Close the dialog
-              },
-              child: Text('Save'),
-            ),
-          ],
-        );
+          TextButton(
+            onPressed: () async {
+              String text = textBoxController.text;
+              // Update the API call to use the entered text
+              await summarizeText(text);
+              Navigator.pop(context); // Close the dialog
+            },
+            child: Text('Save'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<void> getSummary(String operationLocation, String apiKey) async {
+  try {
+    final http.Response response = await http.get(
+      Uri.parse(operationLocation),
+      headers: {
+        'Content-Type': 'application/json',
+        'Ocp-Apim-Subscription-Key': apiKey
       },
     );
+
+    if (response.statusCode == 200) {
+
+      print('Success! Summary: ${response.body}');
+      final Map<String, dynamic> responseBody = json.decode(response.body);
+      final List<dynamic> tasks = responseBody['tasks']['items'];
+      final Map<String, dynamic> task = tasks[0];
+      final Map<String, dynamic> results = task['results'];
+      final List<dynamic> documents = results['documents'];
+      final Map<String, dynamic> document = documents[0];
+      final List<dynamic> summaries = document['summaries'];
+      final Map<String, dynamic> summary = summaries[0];
+      final String summaryText = summary['text'];
+      Fluttertoast.showToast(
+        msg: 'getting your summary',
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 7,
+      );
+    } else {
+      print('Failed to get summary. Response: ${response.body}');
+      Fluttertoast.showToast(
+        msg: 'Failed to get summary. Please try again.',
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 7,
+      );
+    }
+  } catch (e) {
+    print('Error occurred: $e');
+    Fluttertoast.showToast(
+      msg: 'Error occurred: $e',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      timeInSecForIosWeb: 1,
+    );
   }
+}
+
+
+Future<void> summarizeText(String text) async {
+  final String url = 'https://sg-std-summarization.cognitiveservices.azure.com/language/analyze-text/jobs?api-version=2022-10-01-preview';
+  final String apiKey = 'bfeba01a0beb4a00857143243bb4fa52';
+
+  final Map<String, dynamic> requestBody = {
+    'displayName': 'Document Abstractive Summarization Task Example',
+    'analysisInput': {
+      'documents': [
+        {
+          'id': '12',
+          'language': 'en',
+          'text': text, // Updated to use the entered text
+        }
+      ]
+    },
+    'tasks': [
+      {
+        'kind': 'AbstractiveSummarization',
+        'taskName': 'Document Abstractive Summarization Task 1',
+        'parameters': {
+          'sentenceCount': 4
+        }
+      }
+    ]
+  };
+
+  try {
+    final http.Response response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Ocp-Apim-Subscription-Key': apiKey
+      },
+      body: json.encode(requestBody),
+    );
+
+    if (response.statusCode == 202 || response.statusCode == 201) {
+      print('Success! Response: ${response.body}');
+      final String operationLocation = response.headers['operation-location'] ?? 'unknown';
+      var duration = const Duration(seconds: 1);
+      sleep(duration);
+      await getSummary(operationLocation, apiKey);
+    } else {
+      print('Failed with status code ${response.statusCode}. Response: ${response.body}');
+      Fluttertoast.showToast(
+        msg: 'Failed to post text. Please try again.',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+      );
+    }
+  } catch (e) {
+    print('Error occurred: $e');
+    Fluttertoast.showToast(
+      msg: 'Error occurred: $e',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      timeInSecForIosWeb: 1,
+    );
+  }
+}
+
+
+
 
   void _showAudioRecordingPopup(BuildContext context) {
     showModalBottomSheet(
