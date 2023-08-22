@@ -3,6 +3,7 @@ import 'note_details_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'globals.dart';
+import 'package:flutter/widgets.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -10,13 +11,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Map<String, dynamic> globalJsonData = {};
-  List<int> widgetList = [];
-  List<String> noteTitles = [];
-  
-  
   String username = globalUsername;
-
   @override
   void initState() {
     super.initState();
@@ -28,7 +23,6 @@ class _HomeScreenState extends State<HomeScreen> {
       globalJsonData = jsonDecode(jsonString);
     });
   }
-  
 
   Future<void> fetchAndSetGlobalData() async {
     final Uri url = Uri.parse(
@@ -47,7 +41,6 @@ class _HomeScreenState extends State<HomeScreen> {
       print('Error making API call: $e');
     }
   }
-  
 
   @override
   Widget build(BuildContext context) {
@@ -123,9 +116,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             width: 300.0,
                             height: 100.0,
                             child: Align(
-                              alignment: Alignment.centerLeft,
+                              alignment: Alignment.topLeft,
                               child: Text(
-                                '${globalJsonData["summary 3"]}',
+                                '${globalJsonData['${globalJsonData.keys.toList()[index]}']}',
                                 style: TextStyle(
                                   color: const Color.fromARGB(255, 42, 60, 68),
                                   fontSize: 16.0,
@@ -148,9 +141,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: FloatingActionButton(
               onPressed: () {
                 setState(() {
-                  int newItem = globalJsonData.length + 1;
-                  widgetList.add(newItem);
-                  noteTitles.add('Note Title');
+                  int newItemIndex = globalJsonData.length + 1;
+                  Map<String, String> newItem = {
+                    'New Note ${newItemIndex}': "empty summary"
+                  };
+                  globalJsonData.addEntries(newItem.entries);
                 });
               },
               child: Icon(Icons.add),
@@ -162,9 +157,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _editNoteTitle(int index) async {
-    String currentTitle = noteTitles[index];
     TextEditingController titleController =
-        TextEditingController(text: currentTitle);
+        TextEditingController(text: globalJsonData.keys.toList()[index]);
 
     String newTitle = await showDialog(
       context: context,
@@ -179,13 +173,14 @@ class _HomeScreenState extends State<HomeScreen> {
             TextButton(
               onPressed: () {
                 Navigator.pop(context,
-                    currentTitle); // Close the dialog and pass the current title
+                    titleController); // Close the dialog and pass the current title
               },
               child: Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
                 String updatedTitle = titleController.text;
+
                 Navigator.pop(context,
                     updatedTitle); // Close the dialog and pass the updated title
               },
@@ -198,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (newTitle != null) {
       setState(() {
-        noteTitles[index] = newTitle;
+        globalJsonData.keys.toList()[index] = newTitle;
       });
     }
   }
@@ -208,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => NoteDetailsScreen(
-          noteTitle: noteTitles[index],
+          noteTitle: globalJsonData.keys.toList()[index],
           onNoteTitleChanged: (updatedTitle) {
             _updateNoteTitle(
                 index, updatedTitle); // Update the note title in the main list
@@ -220,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _updateNoteTitle(int index, String updatedTitle) {
     setState(() {
-      noteTitles[index] = updatedTitle;
+      globalJsonData.keys.toList()[index] = updatedTitle;
     });
   }
 }

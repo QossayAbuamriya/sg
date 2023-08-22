@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'globals.dart';
+
 
 
 class NoteDetailsScreen extends StatefulWidget {
@@ -31,7 +33,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _textEditingController = TextEditingController(text: 'new note');
+    _textEditingController = TextEditingController(text: "${summaryKey}");
     _record = Record();
   }
 
@@ -145,7 +147,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
                   //the main text box 
                   child: SingleChildScrollView(
                     child: TextField(
-                      controller: _textEditingController,
+                      controller: TextEditingController(text: "${summaryValue}"),
                       focusNode: _focusNode,
                       maxLines:
                           null, // Allows the text field to grow dynamically
@@ -281,26 +283,6 @@ Future<void> getSummary(String operationLocation, String apiKey) async {
   }
 }
 
-// Future<void> uploadData(Map<String, List<List<String>>> data) async {
-//   final Uri url = Uri.parse(
-//       'https://qossaysgstorage.blob.core.windows.net/summaries-file/summaries-blob.json?sp=racwdl&st=2023-08-21T04:17:35Z&se=2023-10-01T12:17:35Z&sv=2022-11-02&sr=c&sig=FykibjXpJ9F0nHbdA7fG0N7WBIyGHJZUwtDdI628KMQ%3D');
-//   final Map<String, String> headers = {
-//     'Content-Type': 'application/json',
-//     'x-ms-blob-type': 'BlockBlob',
-//   };
-
-//   try {
-//     final http.Response response = await http.put(url, headers: headers, body: jsonEncode(data));
-//     if (response.statusCode == 201) {
-//       print('Data uploaded successfully');
-//     } else {
-//       print('Error uploading data: ${response.statusCode} ${response.reasonPhrase}');
-//     }
-//   } catch (e) {
-//     print('Error making API call: $e');
-//   }
-// }
-
 Future<void> summarizeText(String text) async {
   final String url = 'https://sg-std-summarization.cognitiveservices.azure.com/language/analyze-text/jobs?api-version=2022-10-01-preview';
   final String apiKey = 'bfeba01a0beb4a00857143243bb4fa52';
@@ -431,8 +413,7 @@ Future<void> summarizeText(String text) async {
 
     if (updatedTitle != null) {
       setState(() {
-        widget.noteTitle =
-            updatedTitle; // Update the note title in the current screen
+        widget.noteTitle = updatedTitle; // Update the note title in the current screen
       });
     }
   }
