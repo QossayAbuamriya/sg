@@ -6,15 +6,17 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'globals.dart';
+import 'dart:collection';
+
 
 
 
 class NoteDetailsScreen extends StatefulWidget {
-  late String noteTitle;
+  late int detailsIndex  ;
   final Function(String) onNoteTitleChanged;
 
   NoteDetailsScreen({
-    required this.noteTitle,
+    required this.detailsIndex,
     required this.onNoteTitleChanged,
   });
 
@@ -33,7 +35,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _textEditingController = TextEditingController(text: "${summaryKey}");
+    _textEditingController = TextEditingController(text: "${globalJsonData.keys.toList()[widget.detailsIndex]}");
     _record = Record();
   }
 
@@ -114,7 +116,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child: Text(
-                      widget.noteTitle,
+                      '${globalJsonData.keys.toList()[widget.detailsIndex]}',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20.0,
@@ -147,7 +149,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
                   //the main text box 
                   child: SingleChildScrollView(
                     child: TextField(
-                      controller: TextEditingController(text: "${summaryValue}"),
+                      controller: TextEditingController(text: '${globalJsonData['${globalJsonData.keys.toList()[widget.detailsIndex]}']}'),
                       focusNode: _focusNode,
                       maxLines:
                           null, // Allows the text field to grow dynamically
@@ -379,28 +381,31 @@ Future<void> summarizeText(String text) async {
   }
 
   void _editNoteTitle() async {
-    String? updatedTitle = await showDialog(
+    String currentTitle = globalJsonData.keys.toList()[widget.detailsIndex];
+    TextEditingController titleController =
+        TextEditingController(text: currentTitle);
+
+    String newTitle = await showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Edit Note Title'),
           content: TextField(
-            controller: _textEditingController,
+            controller: titleController,
             autofocus: true,
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(
-                    context); // Close the dialog without saving changes
+                Navigator.pop(context,
+                    currentTitle); // Close the dialog and pass the current title
               },
               child: Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
-                String updatedTitle = _textEditingController.text;
-                widget.onNoteTitleChanged(
-                    updatedTitle); // Update the note title in the main list
+                String updatedTitle = titleController.text;
+
                 Navigator.pop(context,
                     updatedTitle); // Close the dialog and pass the updated title
               },
@@ -411,10 +416,26 @@ Future<void> summarizeText(String text) async {
       },
     );
 
-    if (updatedTitle != null) {
-      setState(() {
-        widget.noteTitle = updatedTitle; // Update the note title in the current screen
+if (newTitle != null && newTitle != currentTitle) {
+    setState(() {
+      // Get the value associated with the currentTitle
+      String value = globalJsonData[currentTitle];
+
+      // Create a new LinkedHashMap and copy the original map to it
+      LinkedHashMap<String, String> newMap = LinkedHashMap<String, String>();
+      globalJsonData.forEach((key, val) {
+        if (key == currentTitle) {
+          // Add the newTitle with the associated value to the map
+          newMap[newTitle] = value;
+        } else {
+          newMap[key] = val;
+        }
       });
-    }
+
+      // Update the globalJsonData with the newMap
+      globalJsonData = newMap;
+
+    });
   }
+}
 }

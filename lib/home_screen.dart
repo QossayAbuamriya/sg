@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'globals.dart';
 import 'package:flutter/widgets.dart';
+import 'dart:collection';
+
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -12,6 +14,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String username = globalUsername;
+  String currentTitle = "";
   @override
   void initState() {
     super.initState();
@@ -156,9 +159,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _editNoteTitle(int index) async {
+void _editNoteTitle(int index) async {
+    currentTitle = globalJsonData.keys.toList()[index];
     TextEditingController titleController =
-        TextEditingController(text: globalJsonData.keys.toList()[index]);
+        TextEditingController(text: currentTitle);
 
     String newTitle = await showDialog(
       context: context,
@@ -173,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
             TextButton(
               onPressed: () {
                 Navigator.pop(context,
-                    titleController); // Close the dialog and pass the current title
+                    currentTitle); // Close the dialog and pass the current title
               },
               child: Text('Cancel'),
             ),
@@ -191,19 +195,35 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
 
-    if (newTitle != null) {
-      setState(() {
-        globalJsonData.keys.toList()[index] = newTitle;
+if (newTitle != null && newTitle != currentTitle) {
+    setState(() {
+      // Get the value associated with the currentTitle
+      String value = globalJsonData[currentTitle];
+
+      // Create a new LinkedHashMap and copy the original map to it
+      LinkedHashMap<String, String> newMap = LinkedHashMap<String, String>();
+      globalJsonData.forEach((key, val) {
+        if (key == currentTitle) {
+          // Add the newTitle with the associated value to the map
+          newMap[newTitle] = value;
+        } else {
+          newMap[key] = val;
+        }
       });
-    }
+
+      // Update the globalJsonData with the newMap
+      globalJsonData = newMap;
+    });
   }
+}
+
 
   void _navigateToNoteDetailsScreen(BuildContext context, int index) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => NoteDetailsScreen(
-          noteTitle: globalJsonData.keys.toList()[index],
+          detailsIndex: index,
           onNoteTitleChanged: (updatedTitle) {
             _updateNoteTitle(
                 index, updatedTitle); // Update the note title in the main list
@@ -215,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _updateNoteTitle(int index, String updatedTitle) {
     setState(() {
-      globalJsonData.keys.toList()[index] = updatedTitle;
+      globalJsonData.keys.toList()[index] = currentTitle;
     });
   }
 }
