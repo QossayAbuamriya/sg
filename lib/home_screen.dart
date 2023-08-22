@@ -6,7 +6,6 @@ import 'globals.dart';
 import 'package:flutter/widgets.dart';
 import 'dart:collection';
 
-
 class HomeScreen extends StatefulWidget {
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -159,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-void _editNoteTitle(int index) async {
+  void _editNoteTitle(int index) async {
     currentTitle = globalJsonData.keys.toList()[index];
     TextEditingController titleController =
         TextEditingController(text: currentTitle);
@@ -195,28 +194,27 @@ void _editNoteTitle(int index) async {
       },
     );
 
-if (newTitle != null && newTitle != currentTitle) {
-    setState(() {
-      // Get the value associated with the currentTitle
-      String value = globalJsonData[currentTitle];
+    if (newTitle != null) {
+      setState(() {
+        // Get the value associated with the currentTitle
+        String value = globalJsonData[currentTitle];
 
-      // Create a new LinkedHashMap and copy the original map to it
-      LinkedHashMap<String, String> newMap = LinkedHashMap<String, String>();
-      globalJsonData.forEach((key, val) {
-        if (key == currentTitle) {
-          // Add the newTitle with the associated value to the map
-          newMap[newTitle] = value;
-        } else {
-          newMap[key] = val;
-        }
+        // Create a new LinkedHashMap and copy the original map to it
+        LinkedHashMap<String, String> newMap = LinkedHashMap<String, String>();
+        globalJsonData.forEach((key, val) {
+          if (key == currentTitle) {
+            // Add the newTitle with the associated value to the map
+            newMap[newTitle] = value;
+          } else {
+            newMap[key] = val;
+          }
+        });
+
+        // Update the globalJsonData with the newMap
+        globalJsonData = newMap;
       });
-
-      // Update the globalJsonData with the newMap
-      globalJsonData = newMap;
-    });
+    }
   }
-}
-
 
   void _navigateToNoteDetailsScreen(BuildContext context, int index) async {
     await Navigator.push(
@@ -225,8 +223,10 @@ if (newTitle != null && newTitle != currentTitle) {
         builder: (context) => NoteDetailsScreen(
           detailsIndex: index,
           onNoteTitleChanged: (updatedTitle) {
-            _updateNoteTitle(
-                index, updatedTitle); // Update the note title in the main list
+            _updateNoteTitle(index, updatedTitle); // Update the note title in the main list
+          },
+          onNoteSummaryChanged: (updatedTitle) {
+            _updateNoteSummary(index, updatedTitle);
           },
         ),
       ),
@@ -235,7 +235,13 @@ if (newTitle != null && newTitle != currentTitle) {
 
   void _updateNoteTitle(int index, String updatedTitle) {
     setState(() {
-      globalJsonData.keys.toList()[index] = currentTitle;
+      globalJsonData.keys.toList()[index] = updatedTitle;
+    });
+  }
+
+  void _updateNoteSummary(int index, String updatedTitle) {
+    setState(() {
+      globalJsonData['${globalJsonData.keys.toList()[index]}'] = updatedTitle;
     });
   }
 }

@@ -14,10 +14,12 @@ import 'dart:collection';
 class NoteDetailsScreen extends StatefulWidget {
   late int detailsIndex  ;
   final Function(String) onNoteTitleChanged;
+  final Function(String) onNoteSummaryChanged;
 
   NoteDetailsScreen({
     required this.detailsIndex,
     required this.onNoteTitleChanged,
+    required this.onNoteSummaryChanged,
   });
 
   @override
@@ -25,9 +27,11 @@ class NoteDetailsScreen extends StatefulWidget {
 }
 
 class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
-  late TextEditingController _textEditingController;
+  late TextEditingController _titleTextEditingController;
+  late TextEditingController _summaryTextEditingController;
   final FocusNode _focusNode = FocusNode();
 
+  
   bool _isRecording = false;
   late Record _record;
   String? _audioFilePath;
@@ -35,13 +39,21 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _textEditingController = TextEditingController(text: "${globalJsonData.keys.toList()[widget.detailsIndex]}");
+    _titleTextEditingController = TextEditingController(text: "${globalJsonData.keys.toList()[widget.detailsIndex]}");
+    _summaryTextEditingController = TextEditingController(text: "${globalJsonData['${globalJsonData.keys.toList()[widget.detailsIndex]}']}");
+    
+    // Add a listener to the _summaryTextEditingController
+    _summaryTextEditingController.addListener(() {
+    // Call widget.onNoteTitleChanged with the new title whenever the controller's value changes
+    widget.onNoteTitleChanged(_summaryTextEditingController.text);
+    globalJsonData['${globalJsonData.keys.toList()[widget.detailsIndex]}'] = _summaryTextEditingController.text;
+  });
     _record = Record();
   }
 
   @override
   void dispose() {
-    _textEditingController.dispose();
+    _titleTextEditingController.dispose();
     _focusNode.dispose();
     super.dispose();
   }
@@ -149,7 +161,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
                   //the main text box 
                   child: SingleChildScrollView(
                     child: TextField(
-                      controller: TextEditingController(text: '${globalJsonData['${globalJsonData.keys.toList()[widget.detailsIndex]}']}'),
+                      controller: _summaryTextEditingController,
                       focusNode: _focusNode,
                       maxLines:
                           null, // Allows the text field to grow dynamically
@@ -168,6 +180,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
                         ),
                       ),
                     ),
+                    
                   ),
                 ),
               ),
@@ -202,9 +215,9 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
     );
   }
 
+  //summarise function
   void _showTextBoxPopup(BuildContext context) {
   TextEditingController textBoxController = TextEditingController();
-
   showDialog(
     context: context,
     builder: (BuildContext context) {
@@ -264,7 +277,7 @@ Future<void> getSummary(String operationLocation, String apiKey) async {
         gravity: ToastGravity.BOTTOM,
         timeInSecForIosWeb: 7,
       );
-      _textEditingController = TextEditingController(text: summaryText);
+      _summaryTextEditingController.text = summaryText;
     } else {
       print('Failed to get summary. Response: ${response.body}');
       Fluttertoast.showToast(
@@ -434,6 +447,8 @@ if (newTitle != null && newTitle != currentTitle) {
 
       // Update the globalJsonData with the newMap
       globalJsonData = newMap;
+      widget.onNoteTitleChanged(newTitle);
+
 
     });
   }
