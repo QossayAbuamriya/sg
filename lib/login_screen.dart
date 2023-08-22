@@ -30,7 +30,7 @@ class LoginScreen extends StatefulWidget {
 final _auth = FirebaseAuth.instance;
 
 class _LoginScreenState extends State<LoginScreen> {
-  String email = "user12@mail.com";
+  String email = "newuser@email.com";
   String password = "";
   bool showSpinner = false;
   String errorMessage = '';
@@ -51,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   keyboardType: TextInputType.emailAddress,
                   textAlign: TextAlign.center,
                   onChanged: (value) {
-                    email = "user12@mail.com";
+                    email = "newuser@email.com";
                     // email = value;
                     //Do something with the user input.
                   },
@@ -90,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     });
                     try {
                       final user = await _auth.signInWithEmailAndPassword(
-                          email: "user12@mail.com", password: "user12");
+                          email: "newuser@email.com", password: "newuser");
                       if (user != null) {
                         globalUsername = email;
                         Navigator.pushNamed(context, 'home_screen');

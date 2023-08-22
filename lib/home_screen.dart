@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'note_details_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -26,21 +27,85 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> createNewBlob() async {
+    final endpoint =
+        "https://qossaysgstorage.blob.core.windows.net/summaries-file/${username}.json?sp=racwdl&st=2023-08-21T04:17:35Z&se=2023-10-01T12:17:35Z&sv=2022-11-02&sr=c&sig=FykibjXpJ9F0nHbdA7fG0N7WBIyGHJZUwtDdI628KMQ%3D";
+
+    final headers = {
+      "x-ms-blob-type": "BlockBlob",
+      "x-ms-version": "2022-11-02",
+      "Content-Type": "application/json"
+    };
+
+    final body =
+        json.encode({"First summary": "your summary will appear here."});
+
+    final response =
+        await http.put(Uri.parse(endpoint), headers: headers, body: body);
+
+    if (response.statusCode != 201) {
+      print(
+          "Failed to create blob. Status code: ${response.statusCode}, Response body: ${response.body}");
+      throw Exception('Failed to create blob');
+    }
+  }
+
   Future<void> fetchAndSetGlobalData() async {
     final Uri url = Uri.parse(
         'https://qossaysgstorage.blob.core.windows.net/summaries-file/${username}.json?sp=racwdl&st=2023-08-21T04:17:35Z&se=2023-10-01T12:17:35Z&sv=2022-11-02&sr=c&sig=FykibjXpJ9F0nHbdA7fG0N7WBIyGHJZUwtDdI628KMQ%3D');
 
     try {
       final http.Response response = await http.get(url);
+
       if (response.statusCode == 200) {
         setGlobalJsonData(response.body);
         print('Global JSON data set successfully');
+      } else if (response.statusCode == 404) {
+        // Blob not found, creating a new one
+        await createNewBlob();
+
+        // Request the data again
+        final retryResponse = await http.get(url);
+        if (retryResponse.statusCode == 200) {
+          setGlobalJsonData(retryResponse.body);
+          print('Global JSON data set successfully after creating blob');
+        } else {
+          print(
+              'Error fetching data after creating blob: ${retryResponse.statusCode} ${retryResponse.reasonPhrase}');
+        }
       } else {
         print(
             'Error fetching data: ${response.statusCode} ${response.reasonPhrase}');
       }
     } catch (e) {
       print('Error making API call: $e');
+    }
+  }
+
+  Future<void> putDataToAzureBlob() async {
+    final Uri url = Uri.parse(
+        'https://qossaysgstorage.blob.core.windows.net/summaries-file/${username}.json?sp=racwdl&st=2023-08-21T04:17:35Z&se=2023-10-01T12:17:35Z&sv=2022-11-02&sr=c&sig=FykibjXpJ9F0nHbdA7fG0N7WBIyGHJZUwtDdI628KMQ%3D');
+
+    final headers = {
+      "Content-Type": "application/json",
+      "x-ms-blob-type": "BlockBlob"
+    };
+
+    final body = json.encode(globalJsonData);
+
+    final response = await http.put(url, headers: headers, body: body);
+
+    if (response.statusCode == 201) {
+      print("Data put to Azure blob successfully.");
+      Fluttertoast.showToast(
+        msg: 'saved..',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+      );
+    } else {
+      print(
+          "Failed to put data to Azure blob. Status code: ${response.statusCode}, Response body: ${response.body}");
     }
   }
 
@@ -212,6 +277,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // Update the globalJsonData with the newMap
         globalJsonData = newMap;
+        putDataToAzureBlob();
       });
     }
   }
@@ -223,7 +289,8 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context) => NoteDetailsScreen(
           detailsIndex: index,
           onNoteTitleChanged: (updatedTitle) {
-            _updateNoteTitle(index, updatedTitle); // Update the note title in the main list
+            _updateNoteTitle(
+                index, updatedTitle); // Update the note title in the main list
           },
           onNoteSummaryChanged: (updatedTitle) {
             _updateNoteSummary(index, updatedTitle);

@@ -42,15 +42,44 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
     _titleTextEditingController = TextEditingController(text: "${globalJsonData.keys.toList()[widget.detailsIndex]}");
     _summaryTextEditingController = TextEditingController(text: "${globalJsonData['${globalJsonData.keys.toList()[widget.detailsIndex]}']}");
     
+   
+
     // Add a listener to the _summaryTextEditingController
     _summaryTextEditingController.addListener(() {
     // Call widget.onNoteTitleChanged with the new title whenever the controller's value changes
     widget.onNoteTitleChanged(_summaryTextEditingController.text);
     globalJsonData['${globalJsonData.keys.toList()[widget.detailsIndex]}'] = _summaryTextEditingController.text;
+    putDataToAzureBlob();
   });
     _record = Record();
   }
 
+ Future<void> putDataToAzureBlob() async {
+    final Uri url = Uri.parse(
+        'https://qossaysgstorage.blob.core.windows.net/summaries-file/${globalUsername}.json?sp=racwdl&st=2023-08-21T04:17:35Z&se=2023-10-01T12:17:35Z&sv=2022-11-02&sr=c&sig=FykibjXpJ9F0nHbdA7fG0N7WBIyGHJZUwtDdI628KMQ%3D');
+
+    final headers = {
+      "Content-Type": "application/json",
+      "x-ms-blob-type": "BlockBlob"
+    };
+
+    final body = json.encode(globalJsonData);
+
+    final response = await http.put(url, headers: headers, body: body);
+
+    if (response.statusCode == 201) {
+      print("Data put to Azure blob successfully.");
+      Fluttertoast.showToast(
+        msg: 'saved..',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+      );
+    } else {
+      print(
+          "Failed to put data to Azure blob. Status code: ${response.statusCode}, Response body: ${response.body}");
+    }
+  }
   @override
   void dispose() {
     _titleTextEditingController.dispose();
@@ -448,6 +477,7 @@ if (newTitle != null && newTitle != currentTitle) {
       // Update the globalJsonData with the newMap
       globalJsonData = newMap;
       widget.onNoteTitleChanged(newTitle);
+      putDataToAzureBlob();
 
 
     });
