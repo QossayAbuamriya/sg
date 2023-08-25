@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:flutter_sound_platform_interface/flutter_sound_recorder_platform_interface.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p; // You might need this for path manipulation
+
+
 
 typedef _Fn = void Function();
 
@@ -16,10 +20,11 @@ class SimpleRecorder extends StatefulWidget {
 }
 
 class _SimpleRecorderState extends State<SimpleRecorder> {
-  Codec _codec = Codec.aacMP4;
-  String _mPath = 'tau_file.mp4';
+  Codec _codec = Codec.pcm16WAV;
+  String _mPath = 'myRecord.wav.wav';
   FlutterSoundRecorder? _mRecorder = FlutterSoundRecorder();
   bool _mRecorderIsInited = false;
+  String  pathh = '';
 
   @override
   void initState() {
@@ -54,7 +59,7 @@ class _SimpleRecorderState extends State<SimpleRecorder> {
     await _mRecorder!.openRecorder();
     if (!await _mRecorder!.isEncoderSupported(_codec) && kIsWeb) {
       _codec = Codec.opusWebM;
-      _mPath = 'tau_file.webm';
+      _mPath = 'myRecord.wav.webm';
       if (!await _mRecorder!.isEncoderSupported(_codec) && kIsWeb) {
         _mRecorderIsInited = true;
         return;
@@ -81,17 +86,25 @@ class _SimpleRecorderState extends State<SimpleRecorder> {
     _mRecorderIsInited = true;
   }
 
-  void record() {
-    _mRecorder!
-        .startRecorder(
-      toFile: _mPath,
-      codec: _codec,
-      audioSource: theSource,
-    )
-        .then((value) {
-      setState(() {});
-    });
-  }
+  Future<String> getFilePath() async {
+  final directory = await getExternalStorageDirectory();
+  final documents = p.join(directory!.parent.parent.parent.parent.path, "Documents");
+  return p.join(documents, 'myRecord.wav'); // or .webm based on codec
+}
+
+  void record() async {
+  String path = await getFilePath();
+
+  _mRecorder!
+      .startRecorder(
+    toFile: path,
+    codec: _codec,
+    audioSource: theSource,
+  )
+      .then((value) {
+    setState(() {});
+  });
+}
 
   _Fn? getRecorderFn() {
     if (!_mRecorderIsInited) {

@@ -47,6 +47,8 @@ dependencies:
   http: ^1.1.0
   fluttertoast: ^8.2.2
   audio_session: ^0.1.16
+  permission_handler: ^10.4.3
+
 
 dev_dependencies:
   flutter_test:
