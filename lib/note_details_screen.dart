@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -7,12 +6,10 @@ import 'dart:convert';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'globals.dart';
 import 'dart:collection';
-
-
-
+import 'recording.dart';
 
 class NoteDetailsScreen extends StatefulWidget {
-  late int detailsIndex  ;
+  late int detailsIndex;
   final Function(String) onNoteTitleChanged;
   final Function(String) onNoteSummaryChanged;
 
@@ -31,30 +28,26 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
   late TextEditingController _summaryTextEditingController;
   final FocusNode _focusNode = FocusNode();
 
-  
-  bool _isRecording = false;
-  late Record _record;
-  String? _audioFilePath;
-
   @override
   void initState() {
     super.initState();
-    _titleTextEditingController = TextEditingController(text: "${globalJsonData.keys.toList()[widget.detailsIndex]}");
-    _summaryTextEditingController = TextEditingController(text: "${globalJsonData['${globalJsonData.keys.toList()[widget.detailsIndex]}']}");
-    
-   
+    _titleTextEditingController = TextEditingController(
+        text: "${globalJsonData.keys.toList()[widget.detailsIndex]}");
+    _summaryTextEditingController = TextEditingController(
+        text:
+            "${globalJsonData['${globalJsonData.keys.toList()[widget.detailsIndex]}']}");
 
     // Add a listener to the _summaryTextEditingController
     _summaryTextEditingController.addListener(() {
-    // Call widget.onNoteTitleChanged with the new title whenever the controller's value changes
-    widget.onNoteTitleChanged(_summaryTextEditingController.text);
-    globalJsonData['${globalJsonData.keys.toList()[widget.detailsIndex]}'] = _summaryTextEditingController.text;
-    putDataToAzureBlob();
-  });
-    _record = Record();
+      // Call widget.onNoteTitleChanged with the new title whenever the controller's value changes
+      widget.onNoteTitleChanged(_summaryTextEditingController.text);
+      globalJsonData['${globalJsonData.keys.toList()[widget.detailsIndex]}'] =
+          _summaryTextEditingController.text;
+      putDataToAzureBlob();
+    });
   }
 
- Future<void> putDataToAzureBlob() async {
+  Future<void> putDataToAzureBlob() async {
     final Uri url = Uri.parse(
         'https://qossaysgstorage.blob.core.windows.net/summaries-file/${globalUsername}.json?sp=racwdl&st=2023-08-21T04:17:35Z&se=2023-10-01T12:17:35Z&sv=2022-11-02&sr=c&sig=FykibjXpJ9F0nHbdA7fG0N7WBIyGHJZUwtDdI628KMQ%3D');
 
@@ -80,41 +73,12 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
           "Failed to put data to Azure blob. Status code: ${response.statusCode}, Response body: ${response.body}");
     }
   }
+
   @override
   void dispose() {
     _titleTextEditingController.dispose();
     _focusNode.dispose();
     super.dispose();
-  }
-
-  Future<void> _startRecording() async {
-    try {
-      if (await _record.hasPermission()) {
-        final appDocumentsDirectory = await getApplicationDocumentsDirectory();
-        final fileName = DateTime.now().toIso8601String();
-        final filePath = '${appDocumentsDirectory.path}/$fileName';
-        await _record.start(path: filePath);
-        setState(() {
-          _isRecording = true;
-          _audioFilePath = filePath;
-        });
-      } else {
-        print('No permission to record audio.');
-      }
-    } catch (e) {
-      print('Error starting recording: $e');
-    }
-  }
-
-  Future<void> _stopRecording() async {
-    try {
-      await _record.stop();
-      setState(() {
-        _isRecording = false;
-      });
-    } catch (e) {
-      print('Error stopping recording: $e');
-    }
   }
 
   @override
@@ -187,7 +151,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
                     border: Border.all(color: Colors.lightBlueAccent),
                     borderRadius: BorderRadius.circular(8.0),
                   ),
-                  //the main text box 
+                  //the main text box
                   child: SingleChildScrollView(
                     child: TextField(
                       controller: _summaryTextEditingController,
@@ -209,7 +173,6 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
                         ),
                       ),
                     ),
-                    
                   ),
                 ),
               ),
@@ -230,7 +193,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
                     FloatingActionButton(
                       heroTag: "audio",
                       onPressed: () {
-                        _showAudioRecordingPopup(context);
+                        showRecorderPopup(context);
                       },
                       child: Icon(Icons.volume_up),
                     ),
@@ -246,181 +209,162 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
 
   //summarise function
   void _showTextBoxPopup(BuildContext context) {
-  TextEditingController textBoxController = TextEditingController();
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text('Enter Text'),
-        content: TextField(
-          controller: textBoxController,
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close the dialog
-            },
-            child: Text('Cancel'),
+    TextEditingController textBoxController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Enter Text'),
+          content: TextField(
+            controller: textBoxController,
+            autofocus: true,
           ),
-          TextButton(
-            onPressed: () async {
-              String text = textBoxController.text;
-              // Update the API call to use the entered text
-              await summarizeText(text);
-              Navigator.pop(context); // Close the dialog
-            },
-            child: Text('Save'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-Future<void> getSummary(String operationLocation, String apiKey) async {
-  try {
-    final http.Response response = await http.get(
-      Uri.parse(operationLocation),
-      headers: {
-        'Content-Type': 'application/json',
-        'Ocp-Apim-Subscription-Key': apiKey
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                String text = textBoxController.text;
+                // Update the API call to use the entered text
+                await summarizeText(text);
+                Navigator.pop(context); // Close the dialog
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
       },
-    );
-
-    if (response.statusCode == 200) {
-
-      print('Success! Summary: ${response.body}');
-      final Map<String, dynamic> responseBody = json.decode(response.body);
-      final List<dynamic> tasks = responseBody['tasks']['items'];
-      final Map<String, dynamic> task = tasks[0];
-      final Map<String, dynamic> results = task['results'];
-      final List<dynamic> documents = results['documents'];
-      final Map<String, dynamic> document = documents[0];
-      final List<dynamic> summaries = document['summaries'];
-      final Map<String, dynamic> summary = summaries[0];
-      final String summaryText = summary['text'];
-      Fluttertoast.showToast(
-        msg: 'getting your summary',
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        timeInSecForIosWeb: 7,
-      );
-      _summaryTextEditingController.text = summaryText;
-    } else {
-      print('Failed to get summary. Response: ${response.body}');
-      Fluttertoast.showToast(
-        msg: 'Failed to get summary. Please try again.',
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        timeInSecForIosWeb: 7,
-      );
-    }
-  } catch (e) {
-    print('Error occurred: $e');
-    Fluttertoast.showToast(
-      msg: 'Error occurred: $e',
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      timeInSecForIosWeb: 1,
     );
   }
-}
 
-Future<void> summarizeText(String text) async {
-  final String url = 'https://sg-std-summarization.cognitiveservices.azure.com/language/analyze-text/jobs?api-version=2022-10-01-preview';
-  final String apiKey = 'bfeba01a0beb4a00857143243bb4fa52';
+  Future<void> getSummary(String operationLocation, String apiKey) async {
+    try {
+      final http.Response response = await http.get(
+        Uri.parse(operationLocation),
+        headers: {
+          'Content-Type': 'application/json',
+          'Ocp-Apim-Subscription-Key': apiKey
+        },
+      );
 
-  final Map<String, dynamic> requestBody = {
-    'displayName': 'Document Abstractive Summarization Task Example',
-    'analysisInput': {
-      'documents': [
-        {
-          'id': '12',
-          'language': 'en',
-          'text': text, // Updated to use the entered text
-        }
-      ]
-    },
-    'tasks': [
-      {
-        'kind': 'AbstractiveSummarization',
-        'taskName': 'Document Abstractive Summarization Task 1',
-        'parameters': {
-          'sentenceCount': 4
-        }
+      if (response.statusCode == 200) {
+        print('Success! Summary: ${response.body}');
+        final Map<String, dynamic> responseBody = json.decode(response.body);
+        final List<dynamic> tasks = responseBody['tasks']['items'];
+        final Map<String, dynamic> task = tasks[0];
+        final Map<String, dynamic> results = task['results'];
+        final List<dynamic> documents = results['documents'];
+        final Map<String, dynamic> document = documents[0];
+        final List<dynamic> summaries = document['summaries'];
+        final Map<String, dynamic> summary = summaries[0];
+        final String summaryText = summary['text'];
+        Fluttertoast.showToast(
+          msg: 'getting your summary',
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 7,
+        );
+        _summaryTextEditingController.text = summaryText;
+      } else {
+        print('Failed to get summary. Response: ${response.body}');
+        Fluttertoast.showToast(
+          msg: 'Failed to get summary. Please try again.',
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 7,
+        );
       }
-    ]
-  };
-
-  try {
-    final http.Response response = await http.post(
-      Uri.parse(url),
-      headers: {
-        'Content-Type': 'application/json',
-        'Ocp-Apim-Subscription-Key': apiKey
-      },
-      body: json.encode(requestBody),
-    );
-
-    if (response.statusCode == 202 || response.statusCode == 201) {
-      print('Success! Response: ${response.body}');
-      final String operationLocation = response.headers['operation-location'] ?? 'unknown';
-      var duration = const Duration(seconds: 1);
-      sleep(duration);
-      await getSummary(operationLocation, apiKey);
-    } else {
-      print('Failed with status code ${response.statusCode}. Response: ${response.body}');
+    } catch (e) {
+      print('Error occurred: $e');
       Fluttertoast.showToast(
-        msg: 'Failed to post text. Please try again.',
+        msg: 'Error occurred: $e',
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
         timeInSecForIosWeb: 1,
       );
     }
-  } catch (e) {
-    print('Error occurred: $e');
-    Fluttertoast.showToast(
-      msg: 'Error occurred: $e',
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      timeInSecForIosWeb: 1,
-    );
   }
+
+  Future<void> summarizeText(String text) async {
+    final String url =
+        'https://sg-std-summarization.cognitiveservices.azure.com/language/analyze-text/jobs?api-version=2022-10-01-preview';
+    final String apiKey = 'bfeba01a0beb4a00857143243bb4fa52';
+
+    final Map<String, dynamic> requestBody = {
+      'displayName': 'Document Abstractive Summarization Task Example',
+      'analysisInput': {
+        'documents': [
+          {
+            'id': '12',
+            'language': 'en',
+            'text': text, // Updated to use the entered text
+          }
+        ]
+      },
+      'tasks': [
+        {
+          'kind': 'AbstractiveSummarization',
+          'taskName': 'Document Abstractive Summarization Task 1',
+          'parameters': {'sentenceCount': 4}
+        }
+      ]
+    };
+
+    try {
+      final http.Response response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Ocp-Apim-Subscription-Key': apiKey
+        },
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 202 || response.statusCode == 201) {
+        print('Success! Response: ${response.body}');
+        final String operationLocation =
+            response.headers['operation-location'] ?? 'unknown';
+        var duration = const Duration(seconds: 1);
+        sleep(duration);
+        await getSummary(operationLocation, apiKey);
+      } else {
+        print(
+            'Failed with status code ${response.statusCode}. Response: ${response.body}');
+        Fluttertoast.showToast(
+          msg: 'Failed to post text. Please try again.',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+        );
+      }
+    } catch (e) {
+      print('Error occurred: $e');
+      Fluttertoast.showToast(
+        msg: 'Error occurred: $e',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+      );
+    }
+  }
+
+Future<void> showRecorderPopup(BuildContext context) async {
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: true, // user must tap outside to close!
+    builder: (BuildContext context) {
+      return Dialog(
+        backgroundColor: Colors.transparent, // Ensure dialog background is transparent
+        child: SimpleRecorder(),
+      );
+    },
+  );
 }
 
-
-
-
-  void _showAudioRecordingPopup(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          padding: EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Audio Recording',
-                style: TextStyle(
-                  fontSize: 20.0,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 16.0),
-              Text('Place your audio recording widget here'),
-              SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: _isRecording ? _stopRecording : _startRecording,
-                child: Text(_isRecording ? 'Stop Recording' : 'Start Recording'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   void _editNoteTitle() async {
     String currentTitle = globalJsonData.keys.toList()[widget.detailsIndex];
@@ -458,29 +402,27 @@ Future<void> summarizeText(String text) async {
       },
     );
 
-if (newTitle != null && newTitle != currentTitle) {
-    setState(() {
-      // Get the value associated with the currentTitle
-      String value = globalJsonData[currentTitle];
+    if (newTitle != null && newTitle != currentTitle) {
+      setState(() {
+        // Get the value associated with the currentTitle
+        String value = globalJsonData[currentTitle];
 
-      // Create a new LinkedHashMap and copy the original map to it
-      LinkedHashMap<String, String> newMap = LinkedHashMap<String, String>();
-      globalJsonData.forEach((key, val) {
-        if (key == currentTitle) {
-          // Add the newTitle with the associated value to the map
-          newMap[newTitle] = value;
-        } else {
-          newMap[key] = val;
-        }
+        // Create a new LinkedHashMap and copy the original map to it
+        LinkedHashMap<String, String> newMap = LinkedHashMap<String, String>();
+        globalJsonData.forEach((key, val) {
+          if (key == currentTitle) {
+            // Add the newTitle with the associated value to the map
+            newMap[newTitle] = value;
+          } else {
+            newMap[key] = val;
+          }
+        });
+
+        // Update the globalJsonData with the newMap
+        globalJsonData = newMap;
+        widget.onNoteTitleChanged(newTitle);
+        putDataToAzureBlob();
       });
-
-      // Update the globalJsonData with the newMap
-      globalJsonData = newMap;
-      widget.onNoteTitleChanged(newTitle);
-      putDataToAzureBlob();
-
-
-    });
+    }
   }
-}
 }

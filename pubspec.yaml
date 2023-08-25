@@ -46,6 +46,7 @@ dependencies:
   path_provider: ^2.0.15
   http: ^1.1.0
   fluttertoast: ^8.2.2
+  audio_session: ^0.1.16
 
 dev_dependencies:
   flutter_test:
