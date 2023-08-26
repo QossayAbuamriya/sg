@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'rounded_button.dart';
-// import 'package:google_fonts/google_fonts.dart';
 
-
-//code for designing the UI of our text field where the user writes his email id or password
-
+// Updated text field decoration for theme consistency
 const kTextFieldDecoration = InputDecoration(
   hintText: 'Enter a value',
   hintStyle: TextStyle(color: Colors.grey),
@@ -15,11 +12,11 @@ const kTextFieldDecoration = InputDecoration(
     borderRadius: BorderRadius.all(Radius.circular(32.0)),
   ),
   enabledBorder: OutlineInputBorder(
-    borderSide: BorderSide(color: Colors.lightBlueAccent, width: 1.0),
+    borderSide: BorderSide(color: Colors.indigo, width: 1.0),
     borderRadius: BorderRadius.all(Radius.circular(32.0)),
   ),
   focusedBorder: OutlineInputBorder(
-    borderSide: BorderSide(color: Colors.lightBlueAccent, width: 2.0),
+    borderSide: BorderSide(color: Color.fromARGB(255, 159, 168, 218), width: 2.0),
     borderRadius: BorderRadius.all(Radius.circular(32.0)),
   ),
 );
@@ -34,8 +31,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   String email = "";
   String password = "";
   bool showSpinner = false;
+
   @override
   Widget build(BuildContext context) {
+        double imageHeight = MediaQuery.of(context).size.height * 0.3;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: ModalProgressHUD(
@@ -46,34 +46,42 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
+              SizedBox(height: 20.0),
+                    Center(
+                      child: Image.asset(
+                        'lib/image.png',
+                        width: MediaQuery.of(context).size.width * 0.8,
+                        height: imageHeight,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+              SizedBox(height: 20.0),
               TextField(
-                  keyboardType: TextInputType.emailAddress,
-                  textAlign: TextAlign.center,
-                  onChanged: (value) {
-                    email = value;
-                  },
-                  decoration: kTextFieldDecoration.copyWith(
-                      hintText: 'Enter your email')),
+                keyboardType: TextInputType.emailAddress,
+                textAlign: TextAlign.center,
+                onChanged: (value) {
+                  email = value;
+                },
+                decoration: kTextFieldDecoration.copyWith(
+                    hintText: 'Enter your email'),
+              ),
               SizedBox(
                 height: 8.0,
               ),
               TextField(
-                  obscureText: true,
-                  textAlign: TextAlign.center,
-                  onChanged: (value) {
-                    password = value;
-                  },
-                  decoration: kTextFieldDecoration.copyWith(
-                      hintText: 'Enter your Password')),
+                obscureText: true,
+                textAlign: TextAlign.center,
+                onChanged: (value) {
+                  password = value;
+                },
+                decoration: kTextFieldDecoration.copyWith(
+                    hintText: 'Enter your Password'),
+              ),
               SizedBox(
                 height: 24.0,
               ),
-              // Text(
-              //    'Hello',
-              //     style: GoogleFonts.getFont('Open Sans'),
-              // ),
               RoundedButton(
-                colour: Colors.blueAccent,
+                colour: Colors.indigo,
                 title: 'Register',
                 onPressed: () async {
                   setState(() {
@@ -83,7 +91,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     final newUser = await _auth.createUserWithEmailAndPassword(
                         email: email, password: password);
                     if (newUser != null) {
-                      Navigator.pushNamed(context, 'home_screen');
+                      Navigator.pushNamed(context, 'login_screen');
                     }
                   } catch (e) {
                     print(e);
@@ -92,7 +100,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     showSpinner = false;
                   });
                 },
-              )
+              ),
             ],
           ),
         ),

@@ -1,14 +1,18 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:flutter_sound_platform_interface/flutter_sound_recorder_platform_interface.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p; // You might need this for path manipulation
-
-
+import 'package:path/path.dart'
+    as p; // You might need this for path manipulation
+import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
 
 typedef _Fn = void Function();
 
@@ -21,10 +25,11 @@ class SimpleRecorder extends StatefulWidget {
 
 class _SimpleRecorderState extends State<SimpleRecorder> {
   Codec _codec = Codec.pcm16WAV;
-  String _mPath = 'myRecord.wav.wav';
+  String _mPath = 'myRecord.wav';
   FlutterSoundRecorder? _mRecorder = FlutterSoundRecorder();
   bool _mRecorderIsInited = false;
-  String  pathh = '';
+  String pathh = '';
+  int i = 0;
 
   @override
   void initState() {
@@ -36,8 +41,84 @@ class _SimpleRecorderState extends State<SimpleRecorder> {
     super.initState();
   }
 
+  // Future<void> _sendAudioToServer(String filePath) async {
+  //   final dio = Dio();
+
+  //   final uri =
+  //       "https://eastus.api.cognitive.microsoft.com/sts/v1.0/issuetoken";
+
+  //   FormData formData = FormData.fromMap({
+  //     "audio": await MultipartFile.fromFile(filePath,
+  //         contentType: MediaType("audio", "wav"))
+  //   });
+
+  //   try {
+  //     final response = await dio.post(
+  //       uri,
+  //       data: formData,
+  //       options: Options(
+  //         headers: {
+  //           "Ocp-Apim-Subscription-Key": "db248a7549e14358b3f0e02a935f73ce",
+  //         },
+  //       ),
+  //     );
+
+  //     if (response.statusCode == 200) {
+  //       print("Uploaded successfully");
+  //       print(response.data);
+
+  //       // Optionally, handle the response data if needed
+  //     } else {
+  //               Fluttertoast.showToast(
+  //         msg: pathh,
+  //         toastLength: Toast.LENGTH_SHORT,
+  //         gravity: ToastGravity.BOTTOM,
+  //         timeInSecForIosWeb: 1,
+  //       );
+  //       print("Failed to upload with status: ${response.statusCode}");
+  //       print(response.data);
+
+  //     }
+  //   } catch (e) {
+  //     print("Error while uploading: $e");
+  //   }
+  // }
+
+
+  Future<void> _sendAudioToServer(String filePath) async {
+    final uri = Uri.parse(
+        "https://eastus.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US&format=detailed");
+
+    final request = http.MultipartRequest('POST', uri)
+      ..headers.addAll({
+        "Ocp-Apim-Subscription-Key": "db248a7549e14358b3f0e02a935f73ce",
+        "Content-Type": "audio/wav"
+      })
+      ..files.add(await http.MultipartFile.fromPath('audio', filePath));
+
+    try {
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        print("Uploaded successfully");
+        Fluttertoast.showToast(
+        msg: '200',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+      );
+        // Optionally, handle the response data if needed
+      } else {
+        print(
+            "Failed to upload. Server responded with ${response.statusCode}: ${response.reasonPhrase}");
+      }
+    } catch (e) {
+      print("Error while uploading: $e");
+    }
+  }
+
   void stopRecorder() async {
     await _mRecorder!.stopRecorder().then((value) {
+      _sendAudioToServer('/storage/emulated/0/Documents/myRecord1.wav');
       Navigator.of(context).pop(_mPath); // Return the recorded file path
     });
   }
@@ -89,22 +170,24 @@ class _SimpleRecorderState extends State<SimpleRecorder> {
   Future<String> getFilePath() async {
   final directory = await getExternalStorageDirectory();
   final documents = p.join(directory!.parent.parent.parent.parent.path, "Documents");
-  return p.join(documents, 'myRecord.wav'); // or .webm based on codec
+  return p.join(documents, 'myRecord${i}.wav'); // or .webm based on codec
 }
 
   void record() async {
-  String path = await getFilePath();
-
-  _mRecorder!
-      .startRecorder(
-    toFile: path,
-    codec: _codec,
-    audioSource: theSource,
-  )
-      .then((value) {
-    setState(() {});
-  });
-}
+    i++;
+    String path = await getFilePath();
+    pathh = path;
+    print(pathh);
+    _mRecorder!
+        .startRecorder(
+      toFile: path,
+      codec: _codec,
+      audioSource: theSource,
+    )
+        .then((value) {
+      setState(() {});
+    });
+  }
 
   _Fn? getRecorderFn() {
     if (!_mRecorderIsInited) {
