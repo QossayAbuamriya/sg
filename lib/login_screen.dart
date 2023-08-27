@@ -103,7 +103,7 @@ setState(() {
                         });
                         try {
                           final user = await _auth.signInWithEmailAndPassword(
-                              email: email, password: password);
+                              email: 'userr@mail.com', password: 'password');
                           if (user != null) {
                             globalUsername = email;
                             Navigator.pushNamed(context, 'home_screen');

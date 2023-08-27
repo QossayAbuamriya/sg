@@ -85,6 +85,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.indigo,
         title: Text('Note Details'),
       ),
       resizeToAvoidBottomInset:
@@ -99,7 +100,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
           decoration: BoxDecoration(
             color: Colors.transparent,
             borderRadius: BorderRadius.circular(16.0),
-            border: Border.all(color: Colors.lightBlueAccent),
+            border: Border.all(color: Colors.indigo),
             boxShadow: [
               BoxShadow(
                 color: Color.fromARGB(255, 131, 148, 157).withOpacity(0.3),
@@ -117,7 +118,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
                   child: Container(
                     padding: EdgeInsets.all(8.0),
                     decoration: BoxDecoration(
-                      color: Color.fromARGB(255, 100, 118, 127),
+                      color: Colors.indigo,
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child: Text(
@@ -148,7 +149,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
                       200, // Adjust the height as needed
                   padding: EdgeInsets.symmetric(horizontal: 8.0),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.lightBlueAccent),
+                    border: Border.all(color: Colors.indigo),
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   //the main text box
@@ -184,6 +185,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     FloatingActionButton(
+                      backgroundColor: Colors.indigo,
                       onPressed: () {
                         _showTextBoxPopup(context);
                       },
@@ -191,6 +193,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
                     ),
                     SizedBox(width: 46.0),
                     FloatingActionButton(
+                      backgroundColor: Colors.indigo,
                       heroTag: "audio",
                       onPressed: () {
                         showRecorderPopup(context);
@@ -214,6 +217,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          
           title: Text('Enter Text'),
           content: TextField(
             controller: textBoxController,
@@ -221,6 +225,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
           ),
           actions: [
             TextButton(
+              
               onPressed: () {
                 Navigator.pop(context); // Close the dialog
               },

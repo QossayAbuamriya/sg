@@ -13,6 +13,7 @@ import 'package:path/path.dart'
 import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:file_picker/file_picker.dart';
 
 typedef _Fn = void Function();
 
@@ -41,50 +42,6 @@ class _SimpleRecorderState extends State<SimpleRecorder> {
     super.initState();
   }
 
-  // Future<void> _sendAudioToServer(String filePath) async {
-  //   final dio = Dio();
-
-  //   final uri =
-  //       "https://eastus.api.cognitive.microsoft.com/sts/v1.0/issuetoken";
-
-  //   FormData formData = FormData.fromMap({
-  //     "audio": await MultipartFile.fromFile(filePath,
-  //         contentType: MediaType("audio", "wav"))
-  //   });
-
-  //   try {
-  //     final response = await dio.post(
-  //       uri,
-  //       data: formData,
-  //       options: Options(
-  //         headers: {
-  //           "Ocp-Apim-Subscription-Key": "db248a7549e14358b3f0e02a935f73ce",
-  //         },
-  //       ),
-  //     );
-
-  //     if (response.statusCode == 200) {
-  //       print("Uploaded successfully");
-  //       print(response.data);
-
-  //       // Optionally, handle the response data if needed
-  //     } else {
-  //               Fluttertoast.showToast(
-  //         msg: pathh,
-  //         toastLength: Toast.LENGTH_SHORT,
-  //         gravity: ToastGravity.BOTTOM,
-  //         timeInSecForIosWeb: 1,
-  //       );
-  //       print("Failed to upload with status: ${response.statusCode}");
-  //       print(response.data);
-
-  //     }
-  //   } catch (e) {
-  //     print("Error while uploading: $e");
-  //   }
-  // }
-
-
   Future<void> _sendAudioToServer(String filePath) async {
     final uri = Uri.parse(
         "https://eastus.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US&format=detailed");
@@ -94,33 +51,30 @@ class _SimpleRecorderState extends State<SimpleRecorder> {
         "Ocp-Apim-Subscription-Key": "db248a7549e14358b3f0e02a935f73ce",
         "Content-Type": "audio/wav"
       })
-      ..files.add(await http.MultipartFile.fromPath('audio', filePath));
-
+      ..files.add(await http.MultipartFile.fromPath('audio', filePath,
+          contentType:
+              MediaType('audio', 'wav') // explicitly setting content type
+          ));
     try {
       final response = await request.send();
       if (response.statusCode == 200) {
         print("Uploaded successfully");
         Fluttertoast.showToast(
-        msg: '200',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        timeInSecForIosWeb: 1,
-      );
+          msg: '200',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+        );
         // Optionally, handle the response data if needed
       } else {
+           print("Error response body: ${await response.stream.bytesToString()}");
+
         print(
-            "Failed to upload. Server responded with ${response.statusCode}: ${response.reasonPhrase}");
+            "Failed to upload. Server responded with ${response.isRedirect}: ${request.files[0].contentType}");
       }
     } catch (e) {
       print("Error while uploading: $e");
     }
-  }
-
-  void stopRecorder() async {
-    await _mRecorder!.stopRecorder().then((value) {
-      _sendAudioToServer('/storage/emulated/0/Documents/myRecord1.wav');
-      Navigator.of(context).pop(_mPath); // Return the recorded file path
-    });
   }
 
   @override
@@ -168,10 +122,11 @@ class _SimpleRecorderState extends State<SimpleRecorder> {
   }
 
   Future<String> getFilePath() async {
-  final directory = await getExternalStorageDirectory();
-  final documents = p.join(directory!.parent.parent.parent.parent.path, "Documents");
-  return p.join(documents, 'myRecord${i}.wav'); // or .webm based on codec
-}
+    final directory = await getExternalStorageDirectory();
+    final documents =
+        p.join(directory!.parent.parent.parent.parent.path, "Documents");
+    return p.join(documents, 'myRecord${i}.wav'); // or .webm based on codec
+  }
 
   void record() async {
     i++;
@@ -186,6 +141,14 @@ class _SimpleRecorderState extends State<SimpleRecorder> {
     )
         .then((value) {
       setState(() {});
+    });
+  }
+
+  void stopRecorder() async {
+    await _mRecorder!.stopRecorder().then((value) {
+      _sendAudioToServer(pathh);
+
+      Navigator.of(context).pop(_mPath); // Return the recorded file path
     });
   }
 
@@ -210,9 +173,33 @@ class _SimpleRecorderState extends State<SimpleRecorder> {
             width: 2,
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // To avoid unnecessary expansion
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    primary: Colors.indigo,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  onPressed: getRecorderFn(),
+                  child: Text(_mRecorder!.isRecording ? 'Stop' : 'Record'),
+                ),
+                Text(
+                  _mRecorder!.isRecording ? 'Recording' : 'Ready',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: _mRecorder!.isRecording ? Colors.red : Colors.green,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 10), // Provides spacing
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 primary: Colors.indigo,
@@ -220,16 +207,22 @@ class _SimpleRecorderState extends State<SimpleRecorder> {
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
-              onPressed: getRecorderFn(),
-              child: Text(_mRecorder!.isRecording ? 'Stop' : 'Record'),
-            ),
-            Text(
-              _mRecorder!.isRecording ? 'Recording' : 'Ready',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: _mRecorder!.isRecording ? Colors.red : Colors.green,
-              ),
+              onPressed: () async {
+                FilePickerResult? result = await FilePicker.platform.pickFiles(
+                  type: FileType
+                      .audio, // Ensure that only audio files can be selected
+                );
+                if (result != null) {
+                  PlatformFile file = result.files.first;
+                  print(file.name); // Name of the picked file
+                  print(file.path); // Path of the picked file
+
+                  if (file.path != null) {
+                    await _sendAudioToServer(file.path!);
+                  }
+                }
+              },
+              child: Text('FilePicker'),
             ),
           ],
         ),
@@ -261,4 +254,73 @@ class _SimpleRecorderState extends State<SimpleRecorder> {
     // Return an empty Scaffold (since we're using a dialog for content display)
     return SizedBox.shrink();
   }
+
+  // @override
+  // Widget build(BuildContext context) {
+  //   Widget recorderBody() {
+  //     return Container(
+  //       margin: const EdgeInsets.symmetric(vertical: 10),
+  //       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+  //       decoration: BoxDecoration(
+  //         color: Color(0xFFFAF0E6),
+  //         borderRadius: BorderRadius.circular(20),
+  //         border: Border.all(
+  //           color: Colors.indigo,
+  //           width: 2,
+  //         ),
+  //       ),
+  //       child: Row(
+  //         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+  //         children: [
+  //           ElevatedButton(
+  //             style: ElevatedButton.styleFrom(
+  //               primary: Colors.indigo,
+  //               shape: RoundedRectangleBorder(
+  //                 borderRadius: BorderRadius.circular(20),
+  //               ),
+  //             ),
+  //             onPressed: getRecorderFn(),
+  //             child: Text(_mRecorder!.isRecording ? 'Stop' : 'Record'),
+  //           ),
+  //           Text(
+  //             _mRecorder!.isRecording ? 'Recording' : 'Ready',
+  //             style: TextStyle(
+  //               fontSize: 16,
+  //               fontWeight: FontWeight.bold,
+  //               color: _mRecorder!.isRecording ? Colors.red : Colors.green,
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+
+  //     );
+  //   }
+
+  //   Future<void> _showRecorderPopup() async {
+  //     showDialog(
+  //       context: context,
+  //       builder: (BuildContext context) {
+  //         return Dialog(
+  //           shape: RoundedRectangleBorder(
+  //             borderRadius: BorderRadius.circular(20),
+  //           ),
+
+  //           child: Padding(
+  //             padding: const EdgeInsets.all(20),
+
+  //             child: recorderBody(),
+  //           ),
+  //         );
+  //       },
+  //     );
+  //   }
+
+  //   // Call the function immediately
+  //   WidgetsBinding.instance?.addPostFrameCallback((_) {
+  //     _showRecorderPopup();
+  //   });
+
+  //   // Return an empty Scaffold (since we're using a dialog for content display)
+  //   return SizedBox.shrink();
+  // }
 }

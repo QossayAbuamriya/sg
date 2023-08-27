@@ -113,6 +113,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor:Colors.indigo,
+        
         title: Text('Home'),
       ),
       body: Stack(
@@ -132,10 +134,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     decoration: BoxDecoration(
                       color: Colors.transparent,
                       borderRadius: BorderRadius.circular(16.0),
-                      border: Border.all(color: Colors.lightBlueAccent),
+                      border: Border.all(color: Colors.indigo),
                       boxShadow: [
                         BoxShadow(
-                          color: Color.fromARGB(255, 131, 148, 157)
+                          color: Color.fromARGB(255, 159, 168, 218)
                               .withOpacity(0.3),
                           blurRadius: 4.0,
                         ),
@@ -149,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Container(
                             padding: EdgeInsets.all(8.0),
                             decoration: BoxDecoration(
-                              color: Color.fromARGB(255, 100, 118, 127),
+                              color: Colors.indigo,
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                             child: GestureDetector(
@@ -206,6 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
             bottom: 16.0,
             right: 16.0,
             child: FloatingActionButton(
+              backgroundColor: Colors.indigo,
               onPressed: () {
                 setState(() {
                   int newItemIndex = globalJsonData.length + 1;
