@@ -14,7 +14,9 @@ import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:file_picker/file_picker.dart';
-
+import 'dart:convert';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:sg/globals.dart';
 typedef _Fn = void Function();
 
 const theSource = AudioSource.microphone;
@@ -42,40 +44,46 @@ class _SimpleRecorderState extends State<SimpleRecorder> {
     super.initState();
   }
 
-  Future<void> _sendAudioToServer(String filePath) async {
-    final uri = Uri.parse(
-        "https://eastus.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US&format=detailed");
 
-    final request = http.MultipartRequest('POST', uri)
-      ..headers.addAll({
-        "Ocp-Apim-Subscription-Key": "db248a7549e14358b3f0e02a935f73ce",
-        "Content-Type": "audio/wav"
-      })
-      ..files.add(await http.MultipartFile.fromPath('audio', filePath,
-          contentType:
-              MediaType('audio', 'wav') // explicitly setting content type
-          ));
-    try {
-      final response = await request.send();
-      if (response.statusCode == 200) {
-        print("Uploaded successfully");
+ Future<void> _sendAudioToServer(String filePath) async {
+  final apiUrl = "https://summarygenius.pythonanywhere.com/api/upload";
+  var request = http.MultipartRequest('POST', Uri.parse(apiUrl));
+  request.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+  try {
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+
+      if (jsonData.containsKey("DisplayText")) {
+        print(jsonData["DisplayText"]);
+        recordedAudioResults.value = jsonData["DisplayText"];
         Fluttertoast.showToast(
-          msg: '200',
+          msg: jsonData["DisplayText"],
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           timeInSecForIosWeb: 1,
         );
-        // Optionally, handle the response data if needed
       } else {
-           print("Error response body: ${await response.stream.bytesToString()}");
-
-        print(
-            "Failed to upload. Server responded with ${response.isRedirect}: ${request.files[0].contentType}");
+        print("DisplayText key not found in the response.");
       }
-    } catch (e) {
-      print("Error while uploading: $e");
+    } else {
+      print("Request failed with status: ${response.statusCode}.");
+      print(response.body);
+      Fluttertoast.showToast(
+        msg: "Error: ${response.body}",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+      );
     }
+  } catch (e) {
+    print("Error while sending request to Flask API: $e");
   }
+}
+
 
   @override
   void dispose() {

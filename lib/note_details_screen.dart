@@ -45,8 +45,30 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
           _summaryTextEditingController.text;
       putDataToAzureBlob();
     });
+
+    recordedAudioResults.addListener(() async{
+    if (recordedAudioResults.value.isNotEmpty) {
+      await summarizeText(recordedAudioResults.value);
+    }
+  });
+
+  recordedAudioSummary.addListener(() async{
+    if (recordedAudioSummary.value.isNotEmpty) {
+      _summaryTextEditingController.text = recordedAudioSummary.value;
+    }
+  });
   }
 
+@override
+  void dispose() {
+    recordedAudioResults.removeListener(() {}); // Remove the listener
+    recordedAudioSummary.removeListener(() {});
+    _summaryTextEditingController.dispose();
+    _titleTextEditingController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+  
   Future<void> putDataToAzureBlob() async {
     final Uri url = Uri.parse(
         'https://qossaysgstorage.blob.core.windows.net/summaries-file/${globalUsername}.json?sp=racwdl&st=2023-08-21T04:17:35Z&se=2023-10-01T12:17:35Z&sv=2022-11-02&sr=c&sig=FykibjXpJ9F0nHbdA7fG0N7WBIyGHJZUwtDdI628KMQ%3D');
@@ -74,12 +96,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _titleTextEditingController.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
+ 
 
   @override
   Widget build(BuildContext context) {
@@ -267,6 +284,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen> {
         final List<dynamic> summaries = document['summaries'];
         final Map<String, dynamic> summary = summaries[0];
         final String summaryText = summary['text'];
+        recordedAudioSummary.value = summary['text'];
         Fluttertoast.showToast(
           msg: 'getting your summary',
           toastLength: Toast.LENGTH_LONG,
@@ -368,6 +386,7 @@ Future<void> showRecorderPopup(BuildContext context) async {
       );
     },
   );
+
 }
 
 
